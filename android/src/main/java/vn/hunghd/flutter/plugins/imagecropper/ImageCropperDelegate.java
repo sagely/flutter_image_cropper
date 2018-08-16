@@ -11,6 +11,7 @@ import com.yalantis.ucrop.UCrop;
 
 import java.io.File;
 import java.util.Date;
+import java.util.HashMap;
 
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -37,6 +38,7 @@ public class ImageCropperDelegate implements PluginRegistry.ActivityResultListen
         Double ratioY = call.argument("ratio_y");
         String title = call.argument("toolbar_title");
         Long color = call.argument("toolbar_color");
+        boolean hideBottomControls = call.argument("hide_bottom_controls");
         methodCall = call;
         pendingResult = result;
 
@@ -48,6 +50,7 @@ public class ImageCropperDelegate implements PluginRegistry.ActivityResultListen
         UCrop.Options options = new UCrop.Options();
         options.setCompressionFormat(Bitmap.CompressFormat.JPEG);
         options.setCompressionQuality(90);
+        options.setHideBottomControls(true);
         if (title != null) {
             options.setToolbarTitle(title);
         }
@@ -70,8 +73,23 @@ public class ImageCropperDelegate implements PluginRegistry.ActivityResultListen
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == UCrop.REQUEST_CROP) {
             if (resultCode == RESULT_OK) {
-                final Uri resultUri = UCrop.getOutput(data);
-                finishWithSuccess(fileUtils.getPathFromUri(activity, resultUri));
+                if ("cropImage".equals(methodCall.method)) {
+                    final Uri resultUri = UCrop.getOutput(data);
+                    HashMap<String, String> toReturn = new HashMap<String, String>();
+                    int x = data.getIntExtra(UCrop.EXTRA_OUTPUT_OFFSET_X, -1);
+                    int y = data.getIntExtra(UCrop.EXTRA_OUTPUT_OFFSET_Y, -1);
+                    int w = data.getIntExtra(UCrop.EXTRA_OUTPUT_IMAGE_WIDTH, -1);
+                    int h = data.getIntExtra(UCrop.EXTRA_OUTPUT_IMAGE_HEIGHT, -1);
+                    toReturn.put("x", Integer.toString(x));
+                    toReturn.put("y", Integer.toString(y));
+                    toReturn.put("w", Integer.toString(w));
+                    toReturn.put("h", Integer.toString(h));
+                    toReturn.put("x2", Integer.toString(x + w));
+                    toReturn.put("y2", Integer.toString(y + h));
+                    toReturn.put("filePath", fileUtils.getPathFromUri(activity, resultUri));
+
+                    finishWithSuccess(toReturn);
+                }
                 return true;
             } else if (resultCode == UCrop.RESULT_ERROR) {
                 final Throwable cropError = UCrop.getError(data);
@@ -86,8 +104,8 @@ public class ImageCropperDelegate implements PluginRegistry.ActivityResultListen
         return false;
     }
 
-    private void finishWithSuccess(String imagePath) {
-        pendingResult.success(imagePath);
+    private void finishWithSuccess(HashMap cropData) {
+        pendingResult.success(cropData);
         clearMethodCallAndResult();
     }
 
