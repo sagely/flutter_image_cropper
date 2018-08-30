@@ -86,6 +86,7 @@ public class ImageCropperDelegate implements PluginRegistry.ActivityResultListen
                     toReturn.put("h", Integer.toString(h));
                     toReturn.put("x2", Integer.toString(x + w));
                     toReturn.put("y2", Integer.toString(y + h));
+                    toReturn.put("scale", String.valueOf(data.getFloatExtra(UCrop.EXTRA_OUTPUT_SCALE, 1)));
                     toReturn.put("filePath", fileUtils.getPathFromUri(activity, resultUri));
 
                     finishWithSuccess(toReturn);
